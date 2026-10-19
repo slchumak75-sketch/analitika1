@@ -1,0 +1,48 @@
+# Публикация релиза: при создании Release (тег v*) собирает Windows .exe
+# и прикрепляет к релизу zip + контрольные суммы (SHA-256).
+# Скачивание из Releases реже блокируется браузерами, чем артефакты Actions.
+name: release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  release-exe:
+    name: Сборка .exe для релиза
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go test ./... -count=1
+      - name: Сборка Windows .exe
+        run: GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -H windowsgui" -o RetailBreakEven.exe .
+      - name: Упаковка и контрольные суммы
+        run: |
+          zip -9 RetailBreakEven-Windows.zip RetailBreakEven.exe
+          sha256sum RetailBreakEven.exe RetailBreakEven-Windows.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Прикрепить к релизу
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            RetailBreakEven-Windows.zip
+            RetailBreakEven.exe
+            SHA256SUMS.txt
+      - name: Или загрузить как артефакт (ручной запуск)
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: RetailBreakEven-release
+          path: |
+            RetailBreakEven-Windows.zip
+            RetailBreakEven.exe
+            SHA256SUMS.txt

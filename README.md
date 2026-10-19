@@ -13,6 +13,10 @@
 Десктопная программа для **Windows** на **Go** с **HTML-интерфейсом**.
 Один файл `RetailBreakEven.exe` — без установки, без интернета и без внешних зависимостей.
 
+## Скачать готовый .exe
+
+Страница релизов: https://github.com/slchumak75-sketch/analitika1/releases → `RetailBreakEven-Windows.zip`. Если Chrome/SmartScreen ругаются на «вирус» — это ложное срабатывание на неподписанный файл, пошагово: `docs/DOWNLOAD.md`.
+
 ## Как пользоваться
 
 1. Запустите `RetailBreakEven.exe` — интерфейс сам откроется в вашем браузере
