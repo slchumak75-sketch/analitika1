@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Точка безубыточности и оптимизация накладных расходов магазина</title>
+<style>
+  :root{
+    --bg:#f1f5f9; --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --accent:#2563eb; --accent2:#0ea5e9; --good:#16a34a; --bad:#dc2626; --warn:#d97706;
+    --radius:14px; --shadow:0 1px 3px rgba(15,23,42,.08),0 8px 24px rgba(15,23,42,.05);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+  header{background:linear-gradient(120deg,#1e3a8a,#2563eb 55%,#0ea5e9);color:#fff;padding:18px 22px 14px;position:sticky;top:0;z-index:20;box-shadow:0 4px 18px rgba(30,58,138,.35)}
+  header h1{margin:0 0 4px;font-size:21px;font-weight:700;letter-spacing:.2px}
+  header p{margin:0;opacity:.85;font-size:13px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+  .btn{border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;border-radius:9px;padding:7px 12px;font-size:13px;cursor:pointer;font-family:inherit}
+  .btn:hover{background:rgba(255,255,255,.25)}
+  .btn.danger{border-color:rgba(254,202,202,.8);background:rgba(220,38,38,.25)}
+  .btn.dark{border-color:var(--line);background:#fff;color:var(--ink)}
+  .btn.dark:hover{background:#f8fafc}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:#1d4ed8}
+  .btn.small{padding:5px 9px;font-size:12px}
+  .srv{margin-left:auto;font-size:12px;opacity:.9;display:flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:50%;background:#fbbf24;display:inline-block}
+  .dot.ok{background:#4ade80}.dot.err{background:#f87171}
+  main{display:grid;grid-template-columns:470px 1fr;gap:16px;padding:16px;max-width:1720px;margin:0 auto;align-items:start}
+  @media(max-width:1020px){main{grid-template-columns:1fr}}
+  .col{display:flex;flex-direction:column;gap:16px;min-width:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px}
+  .card h2{margin:0 0 4px;font-size:16px}
+  .card h3{margin:14px 0 6px;font-size:14px}
+  .hint{color:var(--muted);font-size:12.5px;margin:0 0 10px}
+  label{display:block;font-size:12.5px;color:var(--muted);margin:10px 0 4px}
+  input[type=text],input[type=number],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font-size:14px;font-family:inherit;background:#fff;color:var(--ink)}
+  input:focus,select:focus{outline:2px solid rgba(37,99,235,.35);border-color:var(--accent)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 12px}
+  .rowline{display:flex;gap:8px;align-items:center}
+  .fx{border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:10px;background:#fcfdff}
+  .fx .del{flex:0 0 auto}
+  .fx-head{display:flex;gap:8px;align-items:center}
+  .fx-head input{flex:1;font-weight:600}
+  .fx-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:0 10px}
+  .sliderline{display:flex;gap:8px;align-items:center;margin-top:6px}
+  .sliderline input[type=range]{flex:1;accent-color:var(--accent)}
+  .sliderline input[type=text]{width:64px;text-align:right}
+  .sliderline span{font-size:12px;color:var(--muted);white-space:nowrap}
+  .vc{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .vc input[name]{flex:1}
+  .vc .pct{width:92px;text-align:right}
+  .del{border:1px solid var(--line);background:#fff;color:var(--bad);border-radius:8px;width:32px;height:36px;cursor:pointer;font-size:16px;line-height:1}
+  .del:hover{background:#fef2f2}
+  .total{border-top:1px dashed var(--line);padding-top:9px;margin-top:4px;font-size:13.5px}
+  .total b{font-size:15px}
+  .quick{display:flex;flex-wrap:wrap;gap:7px;margin:6px 0 12px}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media(max-width:1300px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.kpis{grid-template-columns:1fr}}
+  .kpi{background:#fff;border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:12px;padding:13px 15px;box-shadow:var(--shadow)}
+  .kpi .t{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .kpi .v{font-size:24px;font-weight:750;margin:3px 0 2px;white-space:nowrap}
+  .kpi .s{font-size:12.5px;color:var(--muted)}
+  .kpi.good{border-top-color:var(--good)}.kpi.bad{border-top-color:var(--bad)}.kpi.warn{border-top-color:var(--warn)}
+  .pos{color:var(--good)}.neg{color:var(--bad)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;vertical-align:middle}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+  tr.hl td{background:#eff6ff;font-weight:650}
+  tr.sum td{border-top:2px solid var(--line);font-weight:700;background:#f8fafc}
+  .tablewrap{overflow-x:auto}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:650;white-space:nowrap}
+  .badge.ok{background:#dcfce7;color:#166534}.badge.warn{background:#fef3c7;color:#92400e}.badge.over{background:#fee2e2;color:#991b1b}
+  .bar-row{display:grid;grid-template-columns:minmax(140px,240px) 1fr 108px;gap:10px;align-items:center;margin:5px 0;font-size:12.5px}
+  .bar-track{background:#eef2f7;border-radius:7px;height:18px;overflow:hidden;position:relative}
+  .bar-fill{height:100%;border-radius:7px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .bar-fill.over{background:linear-gradient(90deg,#dc2626,#f97316)}
+  .bar-fill.warn{background:linear-gradient(90deg,#d97706,#fbbf24)}
+  .bar-val{text-align:right;color:var(--muted);white-space:nowrap}
+  canvas{width:100%;height:340px;display:block}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:6px}
+  .legend i{width:22px;height:3px;display:inline-block;vertical-align:middle;margin-right:6px;border-radius:2px}
+  .alert{border-radius:11px;padding:11px 14px;font-size:13.5px;margin-bottom:10px;border:1px solid}
+  .alert.warn{background:#fffbeb;border-color:#fde68a;color:#78350f}
+  .alert.bad{background:#fef2f2;border-color:#fecaca;color:#7f1d1d}
+  ul.recs{margin:6px 0 0;padding-left:20px}
+  ul.recs li{margin:7px 0}
+  details{font-size:13.5px}
+  details summary{cursor:pointer;font-weight:650}
+  code{background:#f1f5f9;border-radius:5px;padding:1px 5px;font-size:12.5px}
+  .muted{color:var(--muted)}
+  .printhead{display:none}
+  footer{padding:6px 18px 22px;color:var(--muted);font-size:12px;text-align:center}
+  @media print{
+    header .toolbar,.inputs,.no-print,footer{display:none!important}
+    header{position:static;box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    main{grid-template-columns:1fr;padding:8px}
+    .card,.kpi{box-shadow:none;break-inside:avoid}
+    .printhead{display:block;color:var(--muted);font-size:12px;margin-bottom:8px}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📈 Точка безубыточности и оптимизация накладных расходов магазина</h1>
+  <p>Введите выручку, наценку и статьи расходов — расчёт выполняется автоматически при каждом изменении.</p>
+  <div class="toolbar">
+    <button class="btn" id="btnSample">Пример данных</button>
+    <button class="btn" id="btnBlank">Пустой шаблон</button>
+    <button class="btn" id="btnSave">💾 Сохранить (JSON)</button>
+    <button class="btn" id="btnLoad">📂 Загрузить (JSON)</button>
+    <input type="file" id="fileInput" accept=".json,application/json" style="display:none">
+    <button class="btn" id="btnPrint">🖨 Печать / PDF</button>
+    <label style="margin:0;color:#dbeafe;font-size:12.5px">Валюта
+      <select id="currency" style="width:auto;display:inline-block;margin-left:6px;padding:6px 8px">
+        <option value="BYN">BYN (Br)</option>
+        <option value="RUB">RUB (₽)</option>
+        <option value="KZT">KZT (₸)</option>
+        <option value="USD">USD ($)</option>
+        <option value="EUR">EUR (€)</option>
+        <option value="руб.">руб.</option>
+      </select>
+    </label>
+    <span class="srv"><span class="dot" id="srvDot"></span><span id="srvTxt">подключение к расчётному ядру…</span></span>
+    <button class="btn danger" id="btnShutdown">⏻ Завершить программу</button>
+  </div>
+</header>
+
+<main>
+  <!-- ================= ВВОД ================= -->
+  <div class="col inputs">
+    <section class="card">
+      <h2>1. Выручка и ценообразование</h2>
+      <p class="hint">Фактическая или планируемая выручка магазина за месяц.</p>
+      <label for="revenue">Выручка за месяц</label>
+      <input type="text" inputmode="decimal" id="revenue">
+      <label for="pricingMode">Как задана торговая надбавка</label>
+      <select id="pricingMode">
+        <option value="markup">Наценка на закупочную цену, %</option>
+        <option value="margin">Валовая маржа (доля в цене продажи), %</option>
+      </select>
+      <div id="markupWrap">
+        <label for="markup">Средняя наценка, %</label>
+        <input type="text" inputmode="decimal" id="markup">
+      </div>
+      <div id="marginWrap" style="display:none">
+        <label for="margin">Валовая маржа, %</label>
+        <input type="text" inputmode="decimal" id="margin">
+      </div>
+      <p class="hint" id="marginHint" style="margin-top:8px"></p>
+      <div class="grid3">
+        <div><label for="avgCheck">Средний Чек</label><input type="text" inputmode="decimal" id="avgCheck"></div>
+        <div><label for="days">Рабочих дней в мес.</label><input type="text" inputmode="numeric" id="days"></div>
+        <div><label for="target">Целевая прибыль / мес.</label><input type="text" inputmode="decimal" id="target"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2. Переменные расходы</h2>
+      <p class="hint">Зависят от оборота, задаются в % от выручки (без себестоимости товара — она считается из наценки выше).</p>
+      <div id="varList"></div>
+      <button class="btn dark small" id="btnAddVar">+ Добавить статью</button>
+      <div class="total">Итого переменные: <b id="varTotalPct">—</b> <span class="muted" id="varTotalMoney"></span></div>
+    </section>
+
+    <section class="card">
+      <h2>3. Постоянные и накладные расходы</h2>
+      <p class="hint">Сумма за месяц, ориентировочный норматив для розницы (% от выручки) и сценарий оптимизации: на сколько % реально снизить статью.</p>
+      <div class="quick">
+        <button class="btn dark small" data-quick="-5">Всем −5%</button>
+        <button class="btn dark small" data-quick="-10">Всем −10%</button>
+        <button class="btn dark small" data-quick="bench">Довести до нормативов</button>
+        <button class="btn dark small" data-quick="reset">Сброс оптимизации</button>
+      </div>
+      <div id="fixedList"></div>
+      <button class="btn dark small" id="btnAddFixed">+ Добавить статью</button>
+      <div class="total">Итого постоянные и накладные: <b id="fixedTotalMoney">—</b> <span class="muted" id="fixedTotalPct"></span></div>
+    </section>
+  </div>
+
+  <!-- ================= РЕЗУЛЬТАТЫ ================= -->
+  <div class="col results">
+    <div class="printhead" id="printHead"></div>
+    <div id="errBox" class="alert bad" style="display:none"></div>
+    <div id="warnBox"></div>
+
+    <div class="kpis">
+      <div class="kpi"><div class="t">Точка безубыточности / мес.</div><div class="v" id="kBE">—</div><div class="s" id="kBEDay">—</div></div>
+      <div class="kpi"><div class="t">Чеков в день для безубыточности</div><div class="v" id="kChecks">—</div><div class="s" id="kChecksNow">—</div></div>
+      <div class="kpi" id="kProfitCard"><div class="t">Прибыль / мес.</div><div class="v" id="kProfit">—</div><div class="s" id="kProfitSub">—</div></div>
+      <div class="kpi" id="kSafetyCard"><div class="t">Запас финансовой прочности</div><div class="v" id="kSafety">—</div><div class="s" id="kSafetySub">—</div></div>
+      <div class="kpi"><div class="t">Маржинальная прибыль</div><div class="v" id="kContrib">—</div><div class="s" id="kContribSub">—</div></div>
+      <div class="kpi"><div class="t">Выручка для целевой прибыли</div><div class="v" id="kTarget">—</div><div class="s" id="kTargetSub">—</div></div>
+    </div>
+
+    <section class="card">
+      <h2>График безубыточности</h2>
+      <p class="hint">Пересечение линий выручки и полных затрат — точка безубыточности. Правее неё магазин в прибыли, левее — в убытке.</p>
+      <canvas id="beChart"></canvas>
+      <div class="legend">
+        <span><i style="background:#16a34a"></i>Выручка</span>
+        <span><i style="background:#dc2626"></i>Полные затраты (товар + переменные + накладные)</span>
+        <span><i style="background:#2563eb"></i>Текущая выручка</span>
+        <span>● точка безубыточности</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Отчёт о прибылях и убытках (месяц)</h2>
+      <div class="tablewrap"><table id="plTable"></table></div>
+    </section>
+
+    <section class="card">
+      <h2>Анализ накладных расходов</h2>
+      <p class="hint">Доля каждой статьи в выручке сравнивается с нормативом. Превышение — потенциальный резерв экономии.</p>
+      <div id="bars"></div>
+      <div class="tablewrap"><table id="fxTable"></table></div>
+      <div class="total">Суммарный резерв по нормативам: <b id="potentialSaving">—</b> <span class="muted">в месяц</span></div>
+    </section>
+
+    <section class="card">
+      <h2>Сценарии оптимизации накладных расходов</h2>
+      <p class="hint">«Ползунки» — ваш сценарий снижения статей из блока 3. «По нормативам» — все превышения нормативов устранены.</p>
+      <div class="tablewrap"><table id="optTable"></table></div>
+    </section>
+
+    <section class="card">
+      <h2>Сценарный анализ: чувствительность к выручке</h2>
+      <div class="tablewrap"><table id="scenTable"></table></div>
+      <p class="hint" id="leverageHint"></p>
+    </section>
+
+    <section class="card">
+      <h2>Рекомендации по оптимизации</h2>
+      <ul class="recs" id="recList"></ul>
+    </section>
+
+    <section class="card">
+      <details>
+        <summary>Как считается? Формулы и пояснения</summary>
+        <p><b>Валовая маржа</b> при заданной наценке: <code>Маржа = Наценка / (1 + Наценка)</code>. Например, наценка 75% → маржа 42,9% цены продажи.</p>
+        <p><b>Коэффициент маржинальной прибыли</b> = Валовая маржа − переменные расходы (% выручки). Показывает, сколько копеек с каждого рубля выручки остаётся на покрытие постоянных расходов и прибыль.</p>
+        <p><b>Точка безубыточности</b> = Постоянные и накладные расходы / Коэффициент маржинальной прибыли.</p>
+        <p><b>Запас финансовой прочности</b> = (Выручка − ТБУ) / Выручка × 100%. Показывает, на сколько % может упасть выручка, прежде чем начнутся убытки. Комфортный уровень для розницы — от 25–30%.</p>
+        <p><b>Выручка для целевой прибыли</b> = (Постоянные расходы + Целевая прибыль) / Коэффициент маржинальной прибыли.</p>
+        <p><b>Нормативы накладных</b> в программе — ориентировочные отраслевые значения для небольшого розничного магазина (аренда 5–10% выручки, ФОТ 10–15% и т.д.). Их можно и нужно подстроить под ваш формат: продуктовый магазин, одежда, электроника имеют разную структуру затрат.</p>
+        <p><b>Операционный рычаг</b> = Маржинальная прибыль / Прибыль: во сколько раз изменение выручки сильнее бьёт по прибыли. Рычаг 5 означает: выручка −1% → прибыль −5%.</p>
+      </details>
+    </section>
+  </div>
+</main>
+
+<footer>Программа работает полностью локально на вашем компьютере (Go + HTML), интернет не требуется. Данные автоматически сохраняются в браузере; кнопку «Сохранить (JSON)» используйте для резервной копии и переноса.</footer>
+
+<script>
+"use strict";
+/* ---------------- Состояние и данные по умолчанию ---------------- */
+var CURRENCIES = { "BYN":"Br", "RUB":"₽", "KZT":"₸", "USD":"$", "EUR":"€", "руб.":"руб." };
+var currency = "BYN";
+
+function sampleData(){
+  return {
+    revenue:150000, pricingMode:"markup", markupPercent:75, marginPercent:40,
+    avgCheck:65, workingDays:30, targetProfit:10000,
+    variableCosts:[
+      {name:"Эквайринг (комиссия банка)", percent:1.6},
+      {name:"Потери, списания и уценка товара", percent:1.5},
+      {name:"Доставка товара от поставщиков", percent:1.2},
+      {name:"Упаковка и пакеты", percent:0.4},
+      {name:"Скидки и программа лояльности", percent:1.0}
+    ],
+    fixedCosts:[
+      {name:"Аренда помещения", amount:13500, benchmarkPercent:8,   optimizePercent:0},
+      {name:"ФОТ персонала с отчислениями", amount:24000, benchmarkPercent:12, optimizePercent:0},
+      {name:"Коммунальные услуги", amount:2800, benchmarkPercent:1.5, optimizePercent:0},
+      {name:"Реклама и маркетинг", amount:4500, benchmarkPercent:2,   optimizePercent:0},
+      {name:"Охрана и видеонаблюдение", amount:900, benchmarkPercent:0.6, optimizePercent:0},
+      {name:"Связь, интернет, ПО, кассовое обслуживание", amount:1100, benchmarkPercent:0.7, optimizePercent:0},
+      {name:"Бухгалтерия и юридические услуги", amount:1200, benchmarkPercent:0.8, optimizePercent:0},
+      {name:"Хозтовары и расходные материалы", amount:1500, benchmarkPercent:0.8, optimizePercent:0},
+      {name:"Ремонт и обслуживание оборудования", amount:900, benchmarkPercent:0.7, optimizePercent:0},
+      {name:"Банковские услуги (фиксированная часть)", amount:600, benchmarkPercent:0.4, optimizePercent:0},
+      {name:"Прочие накладные расходы", amount:2000, benchmarkPercent:1, optimizePercent:0}
+    ]
+  };
+}
+function blankData(){
+  var d = sampleData();
+  d.revenue = 0; d.targetProfit = 0;
+  d.variableCosts.forEach(function(v){ v.percent = 0; });
+  d.fixedCosts.forEach(function(f){ f.amount = 0; f.optimizePercent = 0; });
+  return d;
+}
+
+var state = sampleData();
+try {
+  var saved = localStorage.getItem("rbe-state-v1");
+  if (saved) { var p = JSON.parse(saved); if (p && p.data) { state = p.data; currency = p.currency || currency; } }
+} catch(e){}
+
+var lastResult = null;
+var calcTimer = null;
+
+/* ---------------- Форматирование ---------------- */
+var nf0 = new Intl.NumberFormat("ru-RU",{maximumFractionDigits:0});
+var nf1 = new Intl.NumberFormat("ru-RU",{minimumFractionDigits:1,maximumFractionDigits:1});
+function cur(){ return CURRENCIES[currency] || currency; }
+function money(n){ return nf0.format(Math.round(n||0)) + " " + cur(); }
+function moneySigned(n){ return (n>0?"+":"") + money(n); }
+function pct(n,d){ var f = (d===0? nf0 : (d===2? new Intl.NumberFormat("ru-RU",{minimumFractionDigits:2,maximumFractionDigits:2}) : nf1)); return f.format(n||0) + "%"; }
+function num1(n){ return nf1.format(n||0); }
+function parseNum(v){ if (typeof v==="number") return v; var s = String(v||"").replace(/\s+/g,"").replace(",","."); var n = parseFloat(s); return isFinite(n)? n : 0; }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+function $(id){ return document.getElementById(id); }
+
+/* ---------------- Рендер полей ввода ---------------- */
+function renderTop(){
+  $("currency").value = currency;
+  $("revenue").value = state.revenue;
+  $("pricingMode").value = state.pricingMode;
+  $("markup").value = state.markupPercent;
+  $("margin").value = state.marginPercent;
+  $("avgCheck").value = state.avgCheck;
+  $("days").value = state.workingDays;
+  $("target").value = state.targetProfit;
+  $("markupWrap").style.display = state.pricingMode==="markup" ? "" : "none";
+  $("marginWrap").style.display = state.pricingMode==="margin" ? "" : "none";
+}
+
+function renderVar(){
+  var box = $("varList"); box.innerHTML = "";
+  state.variableCosts.forEach(function(v,i){
+    var row = document.createElement("div"); row.className = "vc";
+    row.innerHTML =
+      '<input type="text" aria-label="Название" value="'+esc(v.name)+'">' +
+      '<input type="text" inputmode="decimal" class="pct" aria-label="% от выручки" value="'+v.percent+'"><span class="muted">%</span>' +
+      '<button class="del" title="Удалить статью">×</button>';
+    var nameIn = row.children[0], pctIn = row.children[1], del = row.children[3];
+    nameIn.addEventListener("input", function(){ state.variableCosts[i].name = nameIn.value; scheduleCalc(); });
+    pctIn.addEventListener("input", function(){ state.variableCosts[i].percent = parseNum(pctIn.value); scheduleCalc(); });
+    del.addEventListener("click", function(){ state.variableCosts.splice(i,1); renderVar(); scheduleCalc(true); });
+    box.appendChild(row);
+  });
+}
+
+function renderFixed(){
+  var box = $("fixedList"); box.innerHTML = "";
+  state.fixedCosts.forEach(function(f,i){
+    var row = document.createElement("div"); row.className = "fx";
+    row.innerHTML =
+      '<div class="fx-head"><input type="text" aria-label="Статья расходов" value="'+esc(f.name)+'">' +
+      '<button class="del" title="Удалить статью">×</button></div>' +
+      '<div class="fx-grid">' +
+        '<div><label>Сумма, '+esc(cur())+'/мес.</label><input type="text" inputmode="decimal" value="'+f.amount+'"></div>' +
+        '<div><label>Норматив, % выручки</label><input type="text" inputmode="decimal" value="'+f.benchmarkPercent+'"></div>' +
+      '</div>' +
+      '<label style="margin-bottom:0">Сценарий: снизить статью на</label>' +
+      '<div class="sliderline"><input type="range" min="0" max="50" step="1" value="'+f.optimizePercent+'">' +
+      '<input type="text" inputmode="numeric" value="'+f.optimizePercent+'"><span>%</span></div>';
+    var nameIn = row.querySelector(".fx-head input");
+    var del = row.querySelector(".del");
+    var amtIn = row.querySelectorAll(".fx-grid input")[0];
+    var benchIn = row.querySelectorAll(".fx-grid input")[1];
+    var range = row.querySelector("input[type=range]");
+    var optIn = row.querySelector(".sliderline input[type=text]");
+    nameIn.addEventListener("input", function(){ state.fixedCosts[i].name = nameIn.value; scheduleCalc(); });
+    amtIn.addEventListener("input", function(){ state.fixedCosts[i].amount = parseNum(amtIn.value); scheduleCalc(); });
+    benchIn.addEventListener("input", function(){ state.fixedCosts[i].benchmarkPercent = parseNum(benchIn.value); scheduleCalc(); });
+    range.addEventListener("input", function(){ state.fixedCosts[i].optimizePercent = parseNum(range.value); optIn.value = range.value; scheduleCalc(); });
+    optIn.addEventListener("input", function(){ var v = Math.max(0,Math.min(100,parseNum(optIn.value))); state.fixedCosts[i].optimizePercent = v; range.value = Math.min(50,v); scheduleCalc(); });
+    del.addEventListener("click", function(){ state.fixedCosts.splice(i,1); renderFixed(); scheduleCalc(true); });
+    box.appendChild(row);
+  });
+}
+
+function bindTop(){
+  function on(id, fn){ $(id).addEventListener("input", fn); $(id).addEventListener("change", fn); }
+  on("revenue", function(){ state.revenue = parseNum($("revenue").value); scheduleCalc(); });
+  on("markup", function(){ state.markupPercent = parseNum($("markup").value); scheduleCalc(); });
+  on("margin", function(){ state.marginPercent = parseNum($("margin").value); scheduleCalc(); });
+  on("avgCheck", function(){ state.avgCheck = parseNum($("avgCheck").value); scheduleCalc(); });
+  on("days", function(){ state.workingDays = parseNum($("days").value); scheduleCalc(); });
+  on("target", function(){ state.targetProfit = parseNum($("target").value); scheduleCalc(); });
+  $("pricingMode").addEventListener("change", function(){
+    // При смене режима пересчитать парное значение, чтобы маржа не «прыгала».
+    if (state.pricingMode==="markup" && $("pricingMode").value==="margin") {
+      var mk = state.markupPercent/100; state.marginPercent = Math.round(mk/(1+mk)*1000)/10;
+    } else if (state.pricingMode==="margin" && $("pricingMode").value==="markup") {
+      var mr = state.marginPercent/100; if (mr<1) state.markupPercent = Math.round(mr/(1-mr)*1000)/10;
+    }
+    state.pricingMode = $("pricingMode").value; renderTop(); scheduleCalc(true);
+  });
+  $("currency").addEventListener("change", function(){ currency = $("currency").value; renderFixed(); persist(); if (lastResult) renderResult(lastResult); });
+  $("btnAddVar").addEventListener("click", function(){ state.variableCosts.push({name:"Новая статья", percent:0}); renderVar(); scheduleCalc(true); });
+  $("btnAddFixed").addEventListener("click", function(){ state.fixedCosts.push({name:"Новая статья", amount:0, benchmarkPercent:1, optimizePercent:0}); renderFixed(); scheduleCalc(true); });
+
+  document.querySelectorAll("[data-quick]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var mode = b.getAttribute("data-quick");
+      state.fixedCosts.forEach(function(f,idx){
+        if (mode==="-5") f.optimizePercent = 5;
+        else if (mode==="-10") f.optimizePercent = 10;
+        else if (mode==="reset") f.optimizePercent = 0;
+        else if (mode==="bench") {
+          // Берём превышение из последнего расчёта Go-ядра.
+          if (lastResult && lastResult.fixedAnalysis[idx]) {
+            var a = lastResult.fixedAnalysis[idx];
+            f.optimizePercent = a.amount>0 ? Math.round(a.excessAmount/a.amount*1000)/10 : 0;
+          }
+        }
+      });
+      renderFixed(); scheduleCalc(true);
+    });
+  });
+
+  $("btnSample").addEventListener("click", function(){ state = sampleData(); renderAll(); });
+  $("btnBlank").addEventListener("click", function(){ if (confirm("Очистить все суммы? Названия статей и нормативы останутся.")) { state = blankData(); renderAll(); } });
+  $("btnPrint").addEventListener("click", function(){
+    $("printHead").textContent = "Отчёт сформирован " + new Date().toLocaleString("ru-RU") + " · Валюта: " + currency;
+    window.print();
+  });
+  $("btnSave").addEventListener("click", saveJSON);
+  $("btnLoad").addEventListener("click", function(){ $("fileInput").click(); });
+  $("fileInput").addEventListener("change", loadJSON);
+  $("btnShutdown").addEventListener("click", function(){
+    if (!confirm("Завершить работу программы? Введённые данные уже автосохранены в браузере.")) return;
+    fetch("/api/shutdown",{method:"POST"}).catch(function(){});
+    document.body.innerHTML = '<div style="max-width:560px;margin:80px auto;font-family:Segoe UI,Arial;text-align:center"><h2>Программа завершена</h2><p>Эту вкладку можно закрыть. Чтобы запустить снова — откройте файл программы (.exe).</p></div>';
+  });
+}
+
+function renderAll(){ renderTop(); renderVar(); renderFixed(); scheduleCalc(true); }
+
+function persist(){
+  try { localStorage.setItem("rbe-state-v1", JSON.stringify({app:"retail-breakeven", version:1, currency:currency, data:state})); } catch(e){}
+}
+
+function saveJSON(){
+  var blob = new Blob([JSON.stringify({app:"retail-breakeven", version:1, currency:currency, data:state}, null, 2)], {type:"application/json"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "magazin-raschet.json"; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+}
+function loadJSON(ev){
+  var file = ev.target.files && ev.target.files[0]; ev.target.value = "";
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(){
+    try {
+      var p = JSON.parse(reader.result);
+      var d = p.data || p;
+      if (!d || typeof d!=="object" || !("revenue" in d)) throw new Error("нет полей расчёта");
+      // Подмешать значения по умолчанию для отсутствующих полей.
+      var base = sampleData();
+      for (var k in base) if (!(k in d)) d[k] = base[k];
+      state = d; currency = p.currency || currency; renderAll();
+    } catch(e){ alert("Не удалось загрузить файл: " + e.message); }
+  };
+  reader.readAsText(file);
+}
+
+/* ---------------- Расчёт через Go API ---------------- */
+function scheduleCalc(now){
+  persist();
+  if (now) { calc(); return; }
+  clearTimeout(calcTimer); calcTimer = setTimeout(calc, 220);
+}
+function calc(){
+  fetch("/api/calc", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(state)})
+    .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+    .then(function(res){ lastResult = res; $("errBox").style.display="none"; setServer(true); renderResult(res); })
+    .catch(function(e){
+      setServer(false);
+      var b = $("errBox"); b.style.display = "";
+      b.textContent = "Нет связи с расчётным ядром программы. Запускайте интерфейс через файл программы (.exe), а не открытием HTML-файла напрямую. (" + e.message + ")";
+    });
+}
+function setServer(ok){
+  $("srvDot").className = "dot " + (ok? "ok":"err");
+  $("srvTxt").textContent = ok? "расчётное ядро Go: подключено" : "расчётное ядро Go: нет связи";
+}
+
+/* ---------------- Рендер результатов ---------------- */
+function badge(st){
+  if (st==="over") return '<span class="badge over">сильно выше нормы</span>';
+  if (st==="warn") return '<span class="badge warn">выше нормы</span>';
+  return '<span class="badge ok">в норме</span>';
+}
+function clsMoney(n){ return n<0? "neg" : (n>0? "pos":""); }
+
+function renderResult(r){
+  // Подсказка по марже и итоги блоков ввода.
+  $("marginHint").textContent = "Валовая маржа: " + pct(r.grossMarginPercent) + " · себестоимость товара: " + pct(r.cogsPercent) + " выручки (" + money(r.cogs) + ")";
+  $("varTotalPct").textContent = pct(r.variablePercent);
+  $("varTotalMoney").textContent = "= " + money(r.variableTotal) + " в месяц";
+  $("fixedTotalMoney").textContent = money(r.fixedTotal);
+  $("fixedTotalPct").textContent = state.revenue>0 ? "= " + pct(r.fixedTotal/state.revenue*100) + " выручки" : "";
+
+  // Предупреждения.
+  var wb = $("warnBox"); wb.innerHTML = "";
+  (r.warnings||[]).forEach(function(w){
+    var d = document.createElement("div");
+    d.className = "alert " + (r.profit<0 || r.contributionPercent<=0 ? "bad" : "warn");
+    d.textContent = "⚠ " + w; wb.appendChild(d);
+  });
+
+  // KPI.
+  $("kBE").textContent = r.breakEven>0? money(r.breakEven) : "не достижима";
+  $("kBEDay").textContent = r.breakEven>0? "это " + money(r.breakEvenPerDay) + " в день" : "маржа не покрывает переменные расходы";
+  $("kChecks").textContent = r.checksPerDayBE>0? num1(r.checksPerDayBE) : "—";
+  $("kChecksNow").textContent = "сейчас: " + num1(r.checksPerDayNow) + " чеков в день при среднем чеке " + money(state.avgCheck);
+  var pk = $("kProfit"); pk.textContent = moneySigned(r.profit); pk.className = "v " + clsMoney(r.profit);
+  $("kProfitSub").textContent = "рентабельность продаж " + pct(r.profitability) + (r.profit<0? " · до безубыточности не хватает " + money(r.extraRevenueNeeded) + " выручки в мес.":"");
+  $("kProfitCard").className = "kpi " + (r.profit<0? "bad":"good");
+  var sf = $("kSafety"); sf.textContent = pct(r.safetyPercent); sf.className = "v " + (r.safetyPercent<10? "neg":"pos");
+  $("kSafetySub").textContent = (r.safetyPercent>=0? "выручка может упасть на ":"выручка ниже ТБУ на ") + money(Math.abs(r.safetyAmount)) + " в мес.";
+  $("kSafetyCard").className = "kpi " + (r.safetyPercent<10? "bad" : (r.safetyPercent<25? "warn":"good"));
+  $("kContrib").textContent = money(r.contribution);
+  $("kContribSub").textContent = pct(r.contributionPercent) + " с каждого рубля выручки после товара и переменных расходов";
+  $("kTarget").textContent = r.revenueForTarget>0? money(r.revenueForTarget) : "—";
+  $("kTargetSub").textContent = "для прибыли " + money(state.targetProfit) + "/мес. · " + num1(r.checksForTarget) + " чеков в день";
+
+  // P&L.
+  var rev = state.revenue || 0;
+  function plRow(name, val, cls){
+    var pc = rev>0? pct(val/rev*100) : "—";
+    return '<tr'+(cls?' class="'+cls+'"':'')+'><td>'+esc(name)+'</td><td>'+money(val)+'</td><td>'+pc+'</td></tr>';
+  }
+  var gross = rev - r.cogs;
+  $("plTable").innerHTML =
+    '<tr><th>Показатель</th><th>Сумма / мес.</th><th>% выручки</th></tr>' +
+    plRow("Выручка", rev, "hl") +
+    plRow("Себестоимость проданного товара", -r.cogs) +
+    plRow("Валовая прибыль", gross) +
+    plRow("Переменные расходы", -r.variableTotal) +
+    plRow("Маржинальная прибыль", r.contribution, "hl") +
+    plRow("Постоянные и накладные расходы", -r.fixedTotal) +
+    '<tr class="sum"><td>Операционная прибыль</td><td class="'+clsMoney(r.profit)+'">'+money(r.profit)+'</td><td>'+pct(r.profitability)+'</td></tr>';
+
+  // Бары структуры накладных.
+  var sorted = (r.fixedAnalysis||[]).slice().sort(function(a,b){ return b.amount-a.amount; });
+  var maxAmt = sorted.length? sorted[0].amount : 0;
+  $("bars").innerHTML = sorted.map(function(a){
+    var w = maxAmt>0? Math.max(2, a.amount/maxAmt*100) : 0;
+    return '<div class="bar-row"><div title="'+esc(a.name)+'">'+esc(a.name)+'</div>' +
+      '<div class="bar-track"><div class="bar-fill '+a.status+'" style="width:'+w+'%"></div></div>' +
+      '<div class="bar-val">'+money(a.amount)+' · '+pct(a.shareOfFixed,1)+'</div></div>';
+  }).join("");
+
+  // Таблица анализа накладных.
+  $("fxTable").innerHTML =
+    '<tr><th>Статья</th><th>Сумма / мес.</th><th>% выручки</th><th>Норматив</th><th>Превышение</th><th>Оптимизация</th><th>Статус</th></tr>' +
+    (r.fixedAnalysis||[]).map(function(a){
+      return '<tr><td>'+esc(a.name)+'</td><td>'+money(a.amount)+'</td><td>'+pct(a.shareOfRevenue)+'</td>' +
+        '<td>'+pct(a.benchmarkPercent)+' <span class="muted">('+money(a.benchmarkAmount)+')</span></td>' +
+        '<td class="'+(a.excessAmount>0?"neg":"muted")+'">'+(a.excessAmount>0? money(a.excessAmount):"—")+'</td>' +
+        '<td>'+(a.saving>0? '−'+pct(a.optimizePercent,0)+' → '+money(a.optimizedAmount)+' <span class="pos">(экономия '+money(a.saving)+')</span>' : '<span class="muted">не задана</span>')+'</td>' +
+        '<td>'+badge(a.status)+'</td></tr>';
+    }).join("") +
+    '<tr class="sum"><td>Итого</td><td>'+money(r.fixedTotal)+'</td><td>'+(rev>0?pct(r.fixedTotal/rev*100):"—")+'</td><td></td>' +
+    '<td>'+money(r.potentialSaving)+'</td><td>'+(r.optimized.saving>0? '<span class="pos">экономия '+money(r.optimized.saving)+'</span>':"—")+'</td><td></td></tr>';
+  $("potentialSaving").textContent = money(r.potentialSaving);
+
+  // Сценарии оптимизации.
+  function optRow(name, now, opt, bench, isPct){
+    function f(v){ return isPct? pct(v) : money(v); }
+    return '<tr><td>'+name+'</td><td>'+f(now)+'</td><td>'+f(opt)+'</td><td>'+f(bench)+'</td></tr>';
+  }
+  $("optTable").innerHTML =
+    '<tr><th>Показатель</th><th>Сейчас</th><th>Сценарий ползунков</th><th>Все статьи по нормативам</th></tr>' +
+    optRow("Накладные расходы / мес.", r.fixedTotal, r.optimized.fixedTotal, r.benchmarkScenario.fixedTotal) +
+    optRow("Экономия / мес.", 0, r.optimized.saving, r.benchmarkScenario.saving) +
+    optRow("Точка безубыточности / мес.", r.breakEven, r.optimized.breakEven, r.benchmarkScenario.breakEven) +
+    optRow("Прибыль / мес.", r.profit, r.optimized.profit, r.benchmarkScenario.profit) +
+    optRow("Запас прочности", r.safetyPercent, r.optimized.safetyPercent, r.benchmarkScenario.safetyPercent, true) +
+    '<tr class="sum"><td>Эффект за год (экономия)</td><td>—</td><td class="pos">'+money(r.optimized.saving*12)+'</td><td class="pos">'+money(r.benchmarkScenario.saving*12)+'</td></tr>';
+
+  // Сценарный анализ.
+  $("scenTable").innerHTML =
+    '<tr><th>Изменение выручки</th><th>Выручка / мес.</th><th>Прибыль сейчас</th><th>Прибыль после оптимизации</th></tr>' +
+    (r.scenarios||[]).map(function(s){
+      var cls = s.deltaPercent===0? ' class="hl"' : '';
+      return '<tr'+cls+'><td>'+(s.deltaPercent>0?"+":"")+s.deltaPercent+'%</td><td>'+money(s.revenue)+'</td>' +
+        '<td class="'+clsMoney(s.profit)+'">'+money(s.profit)+'</td>' +
+        '<td class="'+clsMoney(s.profitOptimized)+'">'+money(s.profitOptimized)+'</td></tr>';
+    }).join("");
+  $("leverageHint").textContent = r.operatingLeverage? 
+    "Операционный рычаг: " + num1(Math.abs(r.operatingLeverage)) + " — изменение выручки на 1% меняет прибыль примерно на " + pct(Math.abs(r.operatingLeverage),1).replace("%","%") + "." : "";
+
+  // Рекомендации.
+  $("recList").innerHTML = (r.recommendations||[]).map(function(t){ return "<li>"+esc(t)+"</li>"; }).join("") ||
+    '<li class="muted">Статьи в пределах нормативов. Для роста прибыли остаются рычаги выручки и маржи: средний Чек, конверсия, ассортиментная маржинальность.</li>';
+
+  drawChart(r);
+}
+
+/* ---------------- График (canvas, без внешних библиотек) ---------------- */
+function compact(n){
+  var a = Math.abs(n);
+  if (a>=1000000) return nf1.format(n/1000000)+" млн";
+  if (a>=1000) return nf0.format(n/1000)+" тыс.";
+  return nf0.format(n);
+}
+function drawChart(r){
+  var cv = $("beChart"); if (!cv || !r.chart || !r.chart.length) return;
+  var dpr = window.devicePixelRatio || 1;
+  var W = cv.clientWidth, H = cv.clientHeight;
+  if (W===0) return;
+  cv.width = W*dpr; cv.height = H*dpr;
+  var ctx = cv.getContext("2d"); ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+  var padL=78, padR=16, padT=16, padB=40;
+  var pw = W-padL-padR, ph = H-padT-padB;
+  var maxX = r.chart[r.chart.length-1].x;
+  var maxY = 0;
+  r.chart.forEach(function(p){ maxY = Math.max(maxY, p.revenue, p.totalCost); });
+  maxY *= 1.08; if (maxY<=0) maxY = 1;
+  function X(v){ return padL + v/maxX*pw; }
+  function Y(v){ return padT + ph - v/maxY*ph; }
+
+  ctx.font = "11px Segoe UI, Arial"; ctx.fillStyle = "#64748b"; ctx.strokeStyle = "#e2e8f0"; ctx.lineWidth = 1;
+  for (var i=0;i<=4;i++){
+    var yv = maxY*i/4, y = Y(yv);
+    ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(padL+pw,y); ctx.stroke();
+    ctx.textAlign="right"; ctx.fillText(compact(yv), padL-8, y+4);
+    var xv = maxX*i/4, x = X(xv);
+    ctx.textAlign="center"; ctx.fillText(compact(xv), x, padT+ph+18);
+  }
+  ctx.fillText("выручка →", padL+pw-30, padT+ph+34);
+
+  function line(get, color){
+    ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2.4;
+    r.chart.forEach(function(p,idx){ var x=X(p.x), y=Y(get(p)); idx? ctx.lineTo(x,y) : ctx.moveTo(x,y); });
+    ctx.stroke();
+  }
+  line(function(p){return p.totalCost;}, "#dc2626");
+  line(function(p){return p.revenue;}, "#16a34a");
+
+  // Текущая выручка.
+  if (state.revenue>0 && state.revenue<=maxX){
+    ctx.beginPath(); ctx.strokeStyle="#2563eb"; ctx.lineWidth=1.6; ctx.setLineDash([5,4]);
+    ctx.moveTo(X(state.revenue), padT); ctx.lineTo(X(state.revenue), padT+ph); ctx.stroke(); ctx.setLineDash([]);
+  }
+  // Точка безубыточности.
+  if (r.breakEven>0 && r.breakEven<=maxX){
+    var bx = X(r.breakEven), by = Y(r.breakEven);
+    ctx.beginPath(); ctx.strokeStyle="#94a3b8"; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.moveTo(bx,by); ctx.lineTo(bx,padT+ph); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.fillStyle="#0f172a"; ctx.arc(bx,by,5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="#0f172a"; ctx.font="600 12px Segoe UI, Arial"; ctx.textAlign = bx>padL+pw-160? "right":"left";
+    ctx.fillText("ТБУ: " + money(r.breakEven), bx + (ctx.textAlign==="left"? 10:-10), by-10);
+  }
+}
+window.addEventListener("resize", function(){ if (lastResult) drawChart(lastResult); });
+
+/* ---------------- Старт ---------------- */
+bindTop();
+renderAll();
+fetch("/api/health").then(function(r){ setServer(r.ok); }).catch(function(){ setServer(false); });
+</script>
+</body>
+</html>
