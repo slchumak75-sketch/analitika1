@@ -9,6 +9,7 @@
   норматива в `calc.go`; добавлен тест `TestPotentialSavingIgnoresNoBenchmark`.
 - Добавлен GitHub Actions workflow `.github/workflows/build.yml`: автосборка при каждом
   `push` и `pull_request` (gofmt, vet, тесты, Linux + Windows .exe, артефакты на 30 дней).
+- Результат CI: оба автопрогона (push и PR) SUCCESS, артефакт с .exe загружается.
 - Документация: переписан `README.md`, добавлены `docs/CODE_REVIEW.md`, `docs/CI.md`,
   `docs/AGENT_HANDOFF.md`, этот журнал.
 
