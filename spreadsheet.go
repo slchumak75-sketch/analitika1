@@ -29,7 +29,7 @@ type Sheet struct {
 // Workbook — разобранный файл таблицы.
 type Workbook struct {
 	FileName string  `json:"fileName"`
-	Format   string  `json:"format"` // xls | xlsx | csv
+	Format   string  `json:"format"`   // xls | xlsx | csv
 	Sheets   []Sheet `json:"sheets"`
 }
 

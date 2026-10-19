@@ -14,7 +14,7 @@ import (
 // RowAnalysis — одна строка-показатель отчёта.
 type RowAnalysis struct {
 	Label          string    `json:"label"`
-	Kind           string    `json:"kind"` // revenue|cogs|costsTotal|tax|vat|expense|other
+	Kind           string    `json:"kind"`           // revenue|cogs|costsTotal|tax|vat|expense|other
 	Values         []float64 `json:"values"`
 	HasValue       []bool    `json:"hasValue"`
 	Total          float64   `json:"total"`          // итого (колонка «Итого» или сумма периодов)
@@ -33,17 +33,17 @@ type SheetAnalysis struct {
 	TopExpenses  []RowAnalysis `json:"topExpenses"`
 
 	// Ключевые показатели (по итогам за все периоды).
-	RevenueTotal   float64 `json:"revenueTotal"`
-	COGSTotal      float64 `json:"cogsTotal"`
-	CostsTotal     float64 `json:"costsTotal"`
-	TaxTotal       float64 `json:"taxTotal"`
-	GrossProfit    float64 `json:"grossProfit"`    // выручка − себестоимость
-	GrossMarginPct float64 `json:"grossMarginPct"` // валовая маржа, %
-	CostsSharePct  float64 `json:"costsSharePct"`  // затраты, % выручки
+	RevenueTotal    float64 `json:"revenueTotal"`
+	COGSTotal       float64 `json:"cogsTotal"`
+	CostsTotal      float64 `json:"costsTotal"`
+	TaxTotal        float64 `json:"taxTotal"`
+	GrossProfit     float64 `json:"grossProfit"`     // выручка − себестоимость
+	GrossMarginPct  float64 `json:"grossMarginPct"`  // валовая маржа, %
+	CostsSharePct   float64 `json:"costsSharePct"`   // затраты, % выручки
 	ProfitBeforeTax float64 `json:"profitBeforeTax"` // выручка − себест. − затраты
 	ProfitAfterTax  float64 `json:"profitAfterTax"`  // минус налоги (если найдены строки налогов)
 
-	MonthsCovered  float64 `json:"monthsCovered"` // оценку длительности периода для калькулятора
+	MonthsCovered  float64 `json:"monthsCovered"`            // оценку длительности периода для калькулятора
 	MonthlyRevenue float64 `json:"monthlyRevenue"`
 	CalcSuggestion *Input  `json:"calcSuggestion,omitempty"` // готовые данные для калькулятора ТБУ
 
