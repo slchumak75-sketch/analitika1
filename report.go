@@ -14,7 +14,7 @@ import (
 // RowAnalysis — одна строка-показатель отчёта.
 type RowAnalysis struct {
 	Label          string    `json:"label"`
-	Kind           string    `json:"kind"`           // revenue|cogs|costsTotal|tax|vat|expense|other
+	Kind           string    `json:"kind"` // revenue|cogs|costsTotal|tax|vat|expense|other
 	Values         []float64 `json:"values"`
 	HasValue       []bool    `json:"hasValue"`
 	Total          float64   `json:"total"`          // итого (колонка «Итого» или сумма периодов)
@@ -43,7 +43,7 @@ type SheetAnalysis struct {
 	ProfitBeforeTax float64 `json:"profitBeforeTax"` // выручка − себест. − затраты
 	ProfitAfterTax  float64 `json:"profitAfterTax"`  // минус налоги (если найдены строки налогов)
 
-	MonthsCovered  float64 `json:"monthsCovered"`            // оценку длительности периода для калькулятора
+	MonthsCovered  float64 `json:"monthsCovered"` // оценку длительности периода для калькулятора
 	MonthlyRevenue float64 `json:"monthlyRevenue"`
 	CalcSuggestion *Input  `json:"calcSuggestion,omitempty"` // готовые данные для калькулятора ТБУ
 
