@@ -391,8 +391,8 @@ func parseXLS(data []byte) ([]Sheet, error) {
 		}
 		p := stream[pos+4 : pos+4+size]
 		switch id {
-		case 0x0809: // BOF
-			if len(p) >= 2 && binary.LittleEndian.Uint16(p[0:2]) == 0x0010 {
+		case 0x0809: // BOF: [версия u16][тип u16] (0x0010 — лист, 0x0005 — книга)
+			if len(p) >= 4 && binary.LittleEndian.Uint16(p[2:4]) == 0x0010 {
 				sheetIdx++
 			}
 		case 0x00FD: // LABELSST

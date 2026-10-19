@@ -34,9 +34,7 @@ jobs:
         run: go vet ./...
 
       - name: Тесты
-        run: |
-          go test ./... -count=1 -run TestParseRealMirXLS -v 2>&1 | grep -E 'FAIL|\.go:|--- |panic|RUN|PASS|ok ' | head -9 | while IFS= read -r line; do echo "::warning ::TEST $line"; done
-          test ${PIPESTATUS[0]} -eq 0
+        run: go test ./... -count=1 -v
 
       - name: Сборка Linux-версии (проверка компиляции)
         run: CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o dist/RetailBreakEven-linux-amd64 .
