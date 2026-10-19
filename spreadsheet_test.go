@@ -2,8 +2,8 @@ package main
 
 import (
 	"archive/zip"
-	"os"
 	"bytes"
+	"os"
 	"strings"
 	"testing"
 )
