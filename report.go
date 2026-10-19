@@ -63,16 +63,15 @@ func classifyLabel(label string) string {
 	switch {
 	case strings.Contains(l, "налог"):
 		return "tax"
+	case strings.Contains(l, "себестоимость затрат") || strings.Contains(l, "итого затрат") || strings.Contains(l, "итого расходы"):
+		return "costsTotal"
+	case strings.Contains(l, "себест"):
+		// ВАЖНО: раньше выручки — «Себестоимость реализация» содержит «реализация».
+		return "cogs"
 	case strings.Contains(l, "выручка") || strings.Contains(l, "реализация"):
 		// «Итого выручка», «Выручка по ККМ», «Реализация (Накладные)» — всё выручка;
 		// главной строкой анализатор выберет максимальную (итоговую).
 		return "revenue"
-	case strings.Contains(l, "себестоимость реализац") || strings.Contains(l, "себест") && strings.Contains(l, "реализ"):
-		return "cogs"
-	case strings.Contains(l, "себестоимость затрат") || strings.Contains(l, "итого затрат") || strings.Contains(l, "итого расходы"):
-		return "costsTotal"
-	case strings.Contains(l, "себест"):
-		return "cogs"
 	case strings.Contains(l, "ндс"):
 		return "vat"
 	case strings.Contains(l, "итого"):
