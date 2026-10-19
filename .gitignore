@@ -1,0 +1,15 @@
+# Сборка / бинарники (собираются в CI, в git не храним)
+*.exe
+/RetailBreakEven
+/dist/
+# Архивы-выгрузки workspace и вложенные архивы релизов
+*.zip
+workspace-*.zip
+# Служебное окружение из исходного архива
+.config/
+go/
+# ОС / редакторы
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
