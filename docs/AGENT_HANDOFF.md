@@ -24,6 +24,9 @@ _Обновлено: 2026-10-19. Проект: RetailBreakEven (точка бе�
 - После правок `versioninfo.json`/`icon.ico` — перегенерировать `resource_windows_amd64.syso`.
 - Каждое значимое изменение: запись в `CHANGELOG.md` + обновление этого файла.
 
+## Импорт таблиц (добавлено позже в тот же день)
+- Программа открывает `.xls/.xlsx/.csv` отчёты по организации: `spreadsheet.go` + `report.go` + `/api/import`, карточка в UI, образцы в `samples/`, детали и ограничения — `docs/SPREADSHEET_IMPORT.md`.
+
 ## Открытые вопросы / TODO для следующего агента
 - [x] Первый прогон Actions зелёный (2026-10-19): push-run `39238293081` и PR-run `39238298141` — SUCCESS, артефакт `RetailBreakEven-<sha>` 5,9 МБ (Linux + Windows .exe).
 - [ ] Опционально: релизы по тегам `v*` с прикреплённым .exe (набросок в `docs/CI.md`).

@@ -191,6 +191,18 @@
     <div id="errBox" class="alert bad" style="display:none"></div>
     <div id="warnBox"></div>
 
+    <section class="card">
+      <h2>📊 Импорт таблицы: отчёт по организации (.xls, .xlsx, .csv)</h2>
+      <p class="hint">Откройте файл вида «ОТЧЕТ ПО ОРГАНИЗАЦИИ …» — программа прочитает периоды (кварталы/месяцы),
+        выручку, себестоимость и статьи затрат, посчитает маржу, доли и динамику и предложит рекомендации.
+        Кнопка «В расчёт безубыточности» перенесёт средние за месяц в калькулятор слева.</p>
+      <div class="rowline">
+        <input type="file" id="sheetFile" accept=".xls,.xlsx,.csv,.tsv" style="flex:1">
+        <button class="btn primary" id="btnImport">Открыть и проанализировать</button>
+      </div>
+      <div id="importResult" style="margin-top:12px"></div>
+    </section>
+
     <div class="kpis">
       <div class="kpi"><div class="t">Точка безубыточности / мес.</div><div class="v" id="kBE">—</div><div class="s" id="kBEDay">—</div></div>
       <div class="kpi"><div class="t">Чеков в день для безубыточности</div><div class="v" id="kChecks">—</div><div class="s" id="kChecksNow">—</div></div>
@@ -429,6 +441,7 @@ function bindTop(){
   $("btnSave").addEventListener("click", saveJSON);
   $("btnLoad").addEventListener("click", function(){ $("fileInput").click(); });
   $("fileInput").addEventListener("change", loadJSON);
+  $("btnImport").addEventListener("click", importSheet);
   $("btnShutdown").addEventListener("click", function(){
     if (!confirm("Завершить работу программы? Введённые данные уже автосохранены в браузере.")) return;
     fetch("/api/shutdown",{method:"POST"}).catch(function(){});
@@ -467,6 +480,64 @@ function loadJSON(ev){
 }
 
 /* ---------------- Расчёт через Go API ---------------- */
+/* ---------------- Импорт таблиц (.xls/.xlsx/.csv) ---------------- */
+var lastImport = null;
+function importSheet(){
+  var f = $("sheetFile").files[0];
+  if (!f) { alert("Сначала выберите файл таблицы (.xls, .xlsx или .csv)."); return; }
+  var fd = new FormData(); fd.append("file", f);
+  $("importResult").innerHTML = '<p class="muted">Читаю файл…</p>';
+  fetch("/api/import", {method:"POST", body: fd})
+    .then(function(r){ if (!r.ok) return r.text().then(function(t){ throw new Error(t); }); return r.json(); })
+    .then(function(rep){ lastImport = rep; renderImport(rep); })
+    .catch(function(e){ $("importResult").innerHTML = '<div class="alert bad">Не удалось прочитать файл: '+esc(e.message)+'</div>'; });
+}
+function renderImport(rep){
+  if (!rep.sheets || !rep.sheets.length) {
+    $("importResult").innerHTML = '<div class="alert warn">В файле не найдена таблица с периодами (кварталы/месяцы по столбцам). Проверьте, что это отчёт вида «ОТЧЕТ ПО ОРГАНИЗАЦИИ».</div>';
+    return;
+  }
+  var html = '<p class="hint">Файл: <b>'+esc(rep.fileName)+'</b> ('+esc(rep.format)+')</p>';
+  rep.sheets.forEach(function(s, si){
+    html += '<h3>'+esc(s.organization || s.name)+'</h3>';
+    html += '<div class="kpis">'
+      + '<div class="kpi"><div class="t">Выручка (итого)</div><div class="v">'+money(s.revenueTotal)+'</div><div class="s">среднемесячная '+money(s.monthlyRevenue)+'</div></div>'
+      + '<div class="kpi"><div class="t">Валовая маржа</div><div class="v">'+pct(s.grossMarginPct)+'</div><div class="s">валовая прибыль '+money(s.grossProfit)+'</div></div>'
+      + '<div class="kpi"><div class="t">Затраты</div><div class="v">'+pct(s.costsSharePct)+'</div><div class="s">'+money(s.costsTotal)+' от выручки</div></div>'
+      + '<div class="kpi"><div class="t">Прибыль до налогов</div><div class="v">'+money(s.profitBeforeTax)+'</div><div class="s">после налогов '+money(s.profitAfterTax)+'</div></div>'
+      + '</div>';
+    (s.warnings||[]).forEach(function(w){ html += '<div class="alert warn">'+esc(w)+'</div>'; });
+    html += '<div class="tablewrap"><table><tr><th>Показатель</th>';
+    s.periods.forEach(function(p){ html += '<th>'+esc(p)+'</th>'; });
+    html += '<th>Доля выручки</th><th>Тренд</th></tr>';
+    s.rows.forEach(function(r){
+      html += '<tr><td>'+esc(r.label)+'</td>';
+      r.values.forEach(function(v,i){ html += '<td>'+(r.hasValue[i]? money(v) : '—')+'</td>'; });
+      html += '<td>'+pct(r.shareOfRevenue)+'</td><td>'+(r.trendPercent? pct(r.trendPercent) : '—')+'</td></tr>';
+    });
+    html += '</table></div>';
+    if (s.topExpenses && s.topExpenses.length) {
+      html += '<h3>Крупнейшие статьи затрат</h3><ul class="recs">'
+        + s.topExpenses.slice(0,5).map(function(r){ return '<li><b>'+esc(r.label)+'</b> — '+money(r.total)+' ('+pct(r.shareOfCosts)+' затрат, '+pct(r.shareOfRevenue)+' выручки)</li>'; }).join("") + '</ul>';
+    }
+    if (s.recommendations && s.recommendations.length) {
+      html += '<h3>Рекомендации</h3><ul class="recs">' + s.recommendations.map(function(t){ return '<li>'+esc(t)+'</li>'; }).join("") + '</ul>';
+    }
+    if (s.calcSuggestion) {
+      html += '<button class="btn primary" onclick="applyImport('+si+')">📥 В расчёт безубыточности (средние за месяц)</button>';
+    }
+  });
+  $("importResult").innerHTML = html;
+}
+function applyImport(si){
+  if (!lastImport || !lastImport.sheets[si] || !lastImport.sheets[si].calcSuggestion) return;
+  var s = lastImport.sheets[si].calcSuggestion;
+  state.revenue = s.revenue; state.pricingMode = "margin"; state.marginPercent = s.marginPercent;
+  if (s.fixedCosts && s.fixedCosts.length) state.fixedCosts = s.fixedCosts.map(function(f){ return {name:f.name, amount:f.amount, benchmarkPercent:0, optimizePercent:0}; });
+  renderAll();
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
 function scheduleCalc(now){
   persist();
   if (now) { calc(); return; }

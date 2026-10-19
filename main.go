@@ -8,8 +8,10 @@
 package main
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
+	"io"
 	"fmt"
 	"log"
 	"net"
@@ -56,6 +58,36 @@ func main() {
 			return
 		}
 		writeJSON(w, Compute(in))
+	})
+
+	// Импорт таблиц (.xls/.xlsx/.csv): разбор файла и анализ отчёта.
+	// См. spreadsheet.go, report.go и docs/SPREADSHEET_IMPORT.md.
+	mux.HandleFunc("/api/import", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "нужен POST", http.StatusMethodNotAllowed)
+			return
+		}
+		if err := r.ParseMultipartForm(16 << 20); err != nil {
+			http.Error(w, "некорректная форма: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		file, header, err := r.FormFile("file")
+		if err != nil {
+			http.Error(w, "файл не передан (поле file)", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+		var buf bytes.Buffer
+		if _, err := io.Copy(&buf, io.LimitReader(file, 16<<20)); err != nil {
+			http.Error(w, "не удалось прочитать файл", http.StatusBadRequest)
+			return
+		}
+		wb, err := ParseSpreadsheet(header.Filename, buf.Bytes())
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		writeJSON(w, AnalyzeWorkbook(wb))
 	})
 
 	// Корректное завершение программы из интерфейса.
