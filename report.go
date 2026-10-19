@@ -63,7 +63,9 @@ func classifyLabel(label string) string {
 	switch {
 	case strings.Contains(l, "налог"):
 		return "tax"
-	case strings.Contains(l, "итого выручка") || l == "выручка" || strings.HasPrefix(l, "выручка"):
+	case strings.Contains(l, "выручка") || strings.Contains(l, "реализация"):
+		// «Итого выручка», «Выручка по ККМ», «Реализация (Накладные)» — всё выручка;
+		// главной строкой анализатор выберет максимальную (итоговую).
 		return "revenue"
 	case strings.Contains(l, "себестоимость реализац") || strings.Contains(l, "себест") && strings.Contains(l, "реализ"):
 		return "cogs"
