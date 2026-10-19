@@ -85,13 +85,26 @@ func isPeriodHeader(s string) bool {
 	if l == "" {
 		return false
 	}
-	return strings.Contains(l, "кв") || strings.Contains(l, "мес") || strings.Contains(l, "итого") ||
-		strings.Contains(l, "год") || strings.Contains(l, "период") || strings.Contains(l, "янв") ||
-		strings.Contains(l, "фев") || strings.Contains(l, "мар") || strings.Contains(l, "апр") ||
-		strings.Contains(l, "май") || strings.Contains(l, "июн") || strings.Contains(l, "июл") ||
-		strings.Contains(l, "авг") || strings.Contains(l, "сен") || strings.Contains(l, "окт") ||
-		strings.Contains(l, "ноя") || strings.Contains(l, "дек") || strings.Contains(l, "q1") ||
-		strings.Contains(l, "q2") || strings.Contains(l, "q3") || strings.Contains(l, "q4")
+	if strings.Contains(l, "кв") || strings.Contains(l, "мес") || strings.Contains(l, "итого") ||
+		strings.Contains(l, "год") || strings.Contains(l, "период") ||
+		strings.Contains(l, "q1") || strings.Contains(l, "q2") ||
+		strings.Contains(l, "q3") || strings.Contains(l, "q4") {
+		return true
+	}
+	// Месяцы: полное название или сокращение с точкой/как отдельное слово,
+	// иначе «МИРСТРОЙМАРКЕТ» ложно матчится по «мар» (был такой баг).
+	months := [][2]string{
+		{"январь", "янв"}, {"февраль", "фев"}, {"март", "мар"}, {"апрель", "апр"},
+		{"май", "май"}, {"июнь", "июн"}, {"июль", "июл"}, {"август", "авг"},
+		{"сентябрь", "сен"}, {"октябрь", "окт"}, {"ноябрь", "ноя"}, {"декабрь", "дек"},
+	}
+	for _, m := range months {
+		if l == m[0] || l == m[1] || strings.HasPrefix(l, m[0]+" ") ||
+			strings.HasPrefix(l, m[1]+".") || strings.HasPrefix(l, m[1]+" ") {
+			return true
+		}
+	}
+	return false
 }
 
 func monthsPerPeriod(periods []string) float64 {
