@@ -28,7 +28,6 @@ jobs:
       - name: Проверка форматирования (gofmt)
         run: |
           out="$(gofmt -l .)"
-          out="$(gofmt -l .)"
           if [ -n "$out" ]; then echo "Не отформатированы: $out"; gofmt -d .; exit 1; fi
 
       - name: go vet

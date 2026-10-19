@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/zip"
+	"os"
 	"bytes"
 	"strings"
 	"testing"
@@ -105,5 +106,37 @@ func TestParseSpreadsheetRejectsUnknown(t *testing.T) {
 	}
 	if !strings.Contains("ok", "o") {
 		t.Fatal("unreachable")
+	}
+}
+
+// Сквозной тест на реальном файле из samples/ (тот самый «ОТЧЕТ ПО ОРГАНИЗАЦИИ мир.xls»).
+func TestParseRealMirXLS(t *testing.T) {
+	data, err := os.ReadFile("samples/ОТЧЕТ ПО ОРГАНИЗАЦИИ мир.xls")
+	if err != nil {
+		t.Skip("образец не найден:", err)
+	}
+	wb, err := ParseSpreadsheet("ОТЧЕТ ПО ОРГАНИЗАЦИИ мир.xls", data)
+	if err != nil {
+		t.Fatal("parse xls:", err)
+	}
+	rep := AnalyzeWorkbook(wb)
+	if len(rep.Sheets) != 1 {
+		t.Fatalf("sheets = %d", len(rep.Sheets))
+	}
+	sa := rep.Sheets[0]
+	if sa.Organization != "МИРСТРОЙМАРКЕТ" {
+		t.Fatalf("Organization = %q", sa.Organization)
+	}
+	if diff := sa.RevenueTotal - 1468005.41; diff > 0.5 || diff < -0.5 {
+		t.Fatalf("RevenueTotal = %v", sa.RevenueTotal)
+	}
+	if diff := sa.GrossMarginPct - 41.0; diff > 0.3 || diff < -0.3 {
+		t.Fatalf("GrossMarginPct = %v", sa.GrossMarginPct)
+	}
+	if diff := sa.CostsTotal - 245389.9; diff > 0.5 || diff < -0.5 {
+		t.Fatalf("CostsTotal = %v", sa.CostsTotal)
+	}
+	if len(sa.TopExpenses) == 0 || sa.TopExpenses[0].Label != "фонд з/пл" {
+		t.Fatalf("TopExpenses = %+v", sa.TopExpenses)
 	}
 }
