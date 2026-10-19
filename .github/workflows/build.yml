@@ -28,7 +28,7 @@ jobs:
       - name: Проверка форматирования (gofmt)
         run: |
           out="$(gofmt -l .)"
-          if [ -n "$out" ]; then for f in $out; do echo "::error file=$f::gofmt needed"; gofmt -d "$f" | head -40; done; exit 1; fi
+          if [ -n "$out" ]; then for f in $out; do gofmt -d "$f" | head -60 | sed "s/%/%25/g; s/\r/%0D/g" | while IFS= read -r line; do echo "::warning ::DIFF $line"; done; done; exit 1; fi
 
       - name: go vet
         run: go vet ./...
